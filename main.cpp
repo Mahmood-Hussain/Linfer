@@ -6,24 +6,25 @@
 #include <opencv2/opencv.hpp>
 #include "apps/yolo/yolo.hpp"
 #include "apps/yolop/yolop.hpp"
+#include "apps/rtdetr/rtdetr.hpp" // Include the header for RTDETR
 
 using namespace std;
 
-void performance_v10(const string &engine_file, int gpuid);
-void batch_inference_v10(const string &engine_file, int gpuid);
-void single_inference_v10(const string &engine_file, int gpuid);
-void performance(const string &engine_file, int gpuid);
-void batch_inference(const string &engine_file, int gpuid);
-void single_inference(const string &engine_file, int gpuid);
+void performance_v10(const string &engine_file, int gpuid, const string &input_dir);
+void batch_inference_v10(const string &engine_file, int gpuid, const string &input_dir, const string &output_dir);
+void single_inference_v10(const string &engine_file, int gpuid, const string &input_img, const string &output_img_path);
+void performance(const string &engine_file, int gpuid, const string &input_dir);
+void batch_inference(const string &engine_file, int gpuid, const string &input_dir, const string &output_dir);
+void single_inference(const string &engine_file, int gpuid, const string &input_img, const string &output_img_path);
 void performance(const string &engine_file, int gpuid, Yolo::Type type, const string &input_dir);
 void batch_inference(const string &engine_file, int gpuid, Yolo::Type type, const string &input_dir, const string &output_dir);
 void single_inference(const string &engine_file, int gpuid, Yolo::Type type, const string &input_img, const string &output_img_path);
 void inference_bytetrack(const string &engine_file, int gpuid, Yolo::Type type, const string &video_file, const string &output_save_path);
 void infer_track(int Mode, const string &path);
-void inference_yolop(const string &engine_file, YoloP::Type type, int gpuid);
-void performance_yolop(const string &engine_file, YoloP::Type type, int gpuid);
-void inference_seg(const string &engine_file, int gpuid);
-void performance_seg(const string &engine_file, int gpuid);
+void performance_yolop(const string &engine_file, YoloP::Type type, int gpuid, const string &input_dir);
+void inference_yolop(const string &engine_file, YoloP::Type type, int gpuid, const string &input_img, const string &output_dir);
+void performance_seg(const string &engine_file, int gpuid, const string &input_dir);
+void inference_seg(const string &engine_file, int gpuid, const string &input_img, const string &output_img_path);
 bool test_ptq();
 
 // Helper function to convert string to Yolo::Type
@@ -88,9 +89,25 @@ int main(int argc, char *argv[])
                 cout << "  Subtask: " << subtask_type << endl;
                 if (task_name == "rtdetr")
                 {
+                    string engine_file = subtask_node["engine_file"].as<string>();
+                    int gpuid = subtask_node["gpuid"].as<int>();
+
                     if (subtask_type == "performance")
                     {
-                        performance(subtask_node["engine_file"].as<string>(), subtask_node["gpuid"].as<int>());
+                        string input_dir = subtask_node["input_dir"].as<string>();
+                        performance(engine_file, gpuid, input_dir);
+                    }
+                    else if (subtask_type == "batch_inference")
+                    {
+                        string input_dir = subtask_node["input_dir"].as<string>();
+                        string output_dir = subtask_node["output_dir"].as<string>();
+                        batch_inference(engine_file, gpuid, input_dir, output_dir);
+                    }
+                    else if (subtask_type == "single_inference")
+                    {
+                        string input_img = subtask_node["input_img"].as<string>();
+                        string output_img_path = subtask_node["output_img_path"].as<string>();
+                        single_inference(engine_file, gpuid, input_img, output_img_path);
                     }
                     else
                     {
@@ -99,17 +116,25 @@ int main(int argc, char *argv[])
                 }
                 else if (task_name == "yolov10")
                 {
+                    string engine_file = subtask_node["engine_file"].as<string>();
+                    int gpuid = subtask_node["gpuid"].as<int>();
+
                     if (subtask_type == "performance_v10")
                     {
-                        performance_v10(subtask_node["engine_file"].as<string>(), subtask_node["gpuid"].as<int>());
+                        string input_dir = subtask_node["input_dir"].as<string>();
+                        performance_v10(engine_file, gpuid, input_dir);
                     }
                     else if (subtask_type == "batch_inference_v10")
                     {
-                        batch_inference_v10(subtask_node["engine_file"].as<string>(), subtask_node["gpuid"].as<int>());
+                        string input_dir = subtask_node["input_dir"].as<string>();
+                        string output_dir = subtask_node["output_dir"].as<string>();
+                        batch_inference_v10(engine_file, gpuid, input_dir, output_dir);
                     }
                     else if (subtask_type == "single_inference_v10")
                     {
-                        single_inference_v10(subtask_node["engine_file"].as<string>(), subtask_node["gpuid"].as<int>());
+                        string input_img = subtask_node["input_img"].as<string>();
+                        string output_img_path = subtask_node["output_img_path"].as<string>();
+                        single_inference_v10(engine_file, gpuid, input_img, output_img_path);
                     }
                     else
                     {
@@ -169,13 +194,17 @@ int main(int argc, char *argv[])
                     int gpuid = subtask_node["gpuid"].as<int>();
                     string yolop_type_str = subtask_node["yolo_type"].as<string>();
                     YoloP::Type yolop_type = stringToYoloPType(yolop_type_str);
+
                     if (subtask_type == "inference_yolop")
                     {
-                        inference_yolop(engine_file, yolop_type, gpuid);
+                        string input_img = subtask_node["input_img"].as<string>();
+                        string output_dir = subtask_node["output_dir"].as<string>();
+                        inference_yolop(engine_file, yolop_type, gpuid, input_img, output_dir);
                     }
                     else if (subtask_type == "performance_yolop")
                     {
-                        performance_yolop(engine_file, yolop_type, gpuid);
+                        string input_dir = subtask_node["input_dir"].as<string>();
+                        performance_yolop(engine_file, yolop_type, gpuid, input_dir);
                     }
                     else
                     {
@@ -188,11 +217,14 @@ int main(int argc, char *argv[])
                     int gpuid = subtask_node["gpuid"].as<int>();
                     if (subtask_type == "inference_seg")
                     {
-                        inference_seg(engine_file, gpuid);
+                        string input_img = subtask_node["input_img"].as<string>();
+                        string output_img_path = subtask_node["output_img_path"].as<string>();
+                        inference_seg(engine_file, gpuid, input_img, output_img_path);
                     }
                     else if (subtask_type == "performance_seg")
                     {
-                        performance_seg(engine_file, gpuid);
+                        string input_dir = subtask_node["input_dir"].as<string>();
+                        performance_seg(engine_file, gpuid, input_dir);
                     }
                     else
                     {
